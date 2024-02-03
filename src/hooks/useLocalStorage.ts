@@ -1,28 +1,37 @@
-export default function useLocalStorage<T>(key: string, defaultValue: T) {
-  const setItem = (value: unknown) => {
-    try {
-      window.localStorage.setItem(key, JSON.stringify(value));
-    } catch (err) {
-      console.error(err);
-    }
-  };
+import { useState, useEffect, useCallback } from 'react';
 
-  const getItem = (): T | undefined => {
+export default function useLocalStorage<T>(key: string, defaultValue: T) {
+  const [value, setValue] = useState<T>(getSavedValue(key, defaultValue));
+
+  function getSavedValue(key: string, initialValue: T) {
     try {
-      const item = window.localStorage.getItem(key);
-      return item ? JSON.parse(item) : defaultValue;
+      const item = localStorage.getItem(key);
+      return item ? (JSON.parse(item) as T) : initialValue;
     } catch (error) {
       console.error(error);
+      return initialValue;
     }
-  };
+  }
 
-  const removeItem = () => {
+  const setSavedValue = useCallback((key: string, value: T) => {
     try {
-      window.localStorage.removeItem(key);
+      localStorage.setItem(key, JSON.stringify(value));
     } catch (err) {
       console.error(err);
     }
-  };
+  }, []);
 
-  return { setItem, getItem, removeItem };
+  function eraseFromStorage() {
+    try {
+      localStorage.removeItem(key);
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  useEffect(() => {
+    setSavedValue(key, value);
+  }, [key, value, setSavedValue]);
+
+  return [value, setValue, eraseFromStorage] as const;
 }
